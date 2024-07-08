@@ -19,46 +19,40 @@ export default function App() {
   const [totalPages, setTotalPages] = useState(0);
   const lastGalleryItemRef = useRef();
 
-  const handleSearch = async (newQuery) => {
+  const handleSearch = (newQuery) => {
+    if (newQuery === query) return; // предотвращение повторного поиска того же запроса
     setQuery(newQuery);
     setPage(1);
     setImages([]);
-    setLoading(true);
+    setTotalPages(0);
     setError(null);
-
-    try {
-      const { images, totalPages } = await fetchImages(newQuery, 1);
-      setImages(images);
-      setTotalPages(totalPages);
-    } catch (error) {
-      setError(error.message);
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLoadMore = async () => {
-    const newPage = page + 1;
-    setPage(newPage);
-    setLoading(true);
-
-    try {
-      const { images: newImages } = await fetchImages(query, newPage);
-      setImages((prevImages) => [...prevImages, ...newImages]);
-    } catch (error) {
-      setError(error.message);
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
   };
 
   useEffect(() => {
+    const fetchImagesData = async () => {
+      setLoading(true);
+
+      try {
+        const { images: fetchedImages, totalPages } = await fetchImages(
+          query,
+          page
+        );
+        setImages((prevImages) =>
+          page === 1 ? fetchedImages : [...prevImages, ...fetchedImages]
+        );
+        setTotalPages(totalPages);
+      } catch (error) {
+        setError(error.message);
+        toast.error(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (query) {
-      handleSearch(query);
+      fetchImagesData();
     }
-  }, [query]);
+  }, [query, page]);
 
   useEffect(() => {
     if (lastGalleryItemRef.current) {
@@ -68,6 +62,10 @@ export default function App() {
       });
     }
   }, [images]);
+
+  const handleLoadMore = () => {
+    setPage((prevPage) => prevPage + 1);
+  };
 
   return (
     <div>
